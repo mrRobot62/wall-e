@@ -60,9 +60,9 @@ board.on("ready", function() {
   motors[1].stop();
   logger.info("all motors off");
 
-  kinematic = new WheelKinematics(MAX_RPM, WHEEL_DIA_MM, WHEEL_DIST_MM, PWM_BITS);
+  //kinematic = new WheelKinematics(MAX_RPM, WHEEL_DIA_MM, WHEEL_DIST_MM, PWM_BITS);
 
-  logger.debug(kinematic.getRPM(0,0,1.0));
+  //logger.debug(kinematic.getRPM(0,0,1.0));
   //logger.debug("getRPM(" + x +")"); 
   //logger.debug("getPWM(" + kinematic.getPWM(30,30,0) +")"); 
   
@@ -89,43 +89,36 @@ board.on("ready", function() {
       console.log("step into blink:");
       led.blink(250);
     },
-    maf: function() {
-      console.log("M_A forward");
-      motors[0].forward(100);
+    stop : function() {
+      console.log("STOP");
+      drive(0,0);
     },
-    mab: function() {
-      console.log("M_A forward");
-      motors[0].reverse(100);
+    fwd : function() {
+      console.log("FWD");
+      drive(0,127);
     },
-    mbf: function() {
-      console.log("M_B forward");
-      motors[1].forward(100);
+    rev : function() {
+      console.log("REV");
+      drive(0,-127);
     },
-    mbb: function() {
-      console.log("M_B forward");
-      motors[1].reverse(100);
+    right : function() {
+      console.log("RIGHT");
+      drive(80,127);
     },
-    moff: function() {
-      console.log("mA, mB, mC OFF");
-      motors[0].stop();
-      motors[1].stop();
-      motors[2].stop();
+    left : function() {
+      console.log("LEFT");
+      drive(-80,127);
     },
+    
     help: function() {
 
       logger.info("----------------------------");
       logger.info("on     : LED on");
       logger.info("off    : LED off");
       logger.info("blink  : LED blink");
-      logger.info("moff   : All Motors OFF");
-      logger.info("maf    : Motor A forward");
-      logger.info("mab    : Motor A reverse");
-      logger.info("mbf    : Motor B forward");
-      logger.info("mbb    : Motor B reverse");
-      logger.info("mf     : move forward");
-      logger.info("mr     : move reverse");
-      logger.info("left   : turn left");
-      logger.info("right  : turn right");
+      logger.info("stop   : All Motors OFF");
+      logger.info("fwd    : go fwd");
+      logger.info("rev    : go bwd");
       logger.info("help   : show this screen");
       logger.info("----------------------------");
     }
@@ -148,7 +141,7 @@ wss.on('connection', function(ws) {
       logger.debug ("Radius: %s, X:%s, Y:%s", raw_cmd.cfg.radius, raw_cmd.joystick1.dX , raw_cmd.joystick1.dY);
 
       if (raw_cmd.joystick1.dX != 0 || raw_cmd.joystick1.dX != 0) {
-        drive (raw_cmd.cfg.radius, raw_cmd.joystick1.dX, raw_cmd.joystick1.dY);
+        drive (raw_cmd.joystick1.dX, raw_cmd.joystick1.dY);
       }
     }
 });
@@ -198,27 +191,6 @@ request.post(webappURL, function(e,r,body) {
 // general functions
 //----------------------------------------------------
 
-/**
- * parse a websocket string and return an array with argument data
- * 
- * Normally a websocket command is structed like this:
- *    forward(<number>)
- *    turn_deg(<radius>, <angle>)
- * 
- * @param {*} data Websocket data packet 
- */
-var parse_ws_data = function (data) {
-  var cmd = new Array(data);
-  logger.debug("parse_ws_data (" + data + ")");
-  if (data.constructor === Array) {
-    logger.debug("1 got an data command array (" + data + ")");
-  }
-  if (cmd instanceof Array) {
-    logger.debug("2 got an data command array (" + data + ")");
-    logger.debug(cmd.forward);
-  }
-}
-
 var led_handling = function ( mode) {
   if (mode === 'on') {
     led.on();
@@ -232,28 +204,18 @@ var led_handling = function ( mode) {
 
 
 //----------------------------------------------------
-// Omniwheel kinematic
+// Differential Steering kinematic
 //----------------------------------------------------
 /**
  * 
- * @param {*} v max radius (velocity) from GUI
  * @param {*} x x position of joystick
  * @param {*} y y position of joystick
  */
-var drive = function(v,x,y) {
-  logger.debug("drive...");
-  // convert x/y position into polor coordinates
-  // r (radius) correlate to new velocity for the bot
-  // theta is correlate to direction
-  vector = cartesian2Polor(x,y);
-  //
-  // calculate speed for all three motors
-  speeds = calculateSpeeds(vector);
-  logger.debug("Vector: " + vector + " - Speeds: " + speeds);
-  //
-  // set speed for every motor
-  // jR represents max velocity based on joystick maximal movement (e.g. 150px)
-  driveMotors(v, motors, speeds);
+var drive = function(x,y) {
+  const kinematic = require("./Kinematics.js");
+  var g = kinematic.getDefaultGeometry();
+  var ds = new kinematic(g);
+  console.log("FWD speed %s", ds.getPWM(x,y));
 };
 
 /**
@@ -262,6 +224,8 @@ var drive = function(v,x,y) {
  * @param {*} motors array for all three motors
  * @param {*} speeds array for all three motors based for an omniwheel movement
  */
+
+ /*
 var driveMotors = function (jR, motors, speeds) {
   var msg = "";
   for(var i=0; i < motors.length; i++) {
@@ -286,6 +250,7 @@ var driveMotors = function (jR, motors, speeds) {
   }
   logger.debug(msg);
 };
+*/
 
 /** 
  * change cartesian (x/y) position into a polar system (radius/degree)
@@ -301,6 +266,7 @@ var cartesian2Polor = function(x,y) {
 };
 
 
+/*
 //var OmniMotor = function (angle, vlinear, vangular) {
 var calculateSpeeds = function (vector) {
   // ------------- TWO-WHEEL kinematic ------------------
@@ -357,6 +323,7 @@ var calculateSpeeds = function (vector) {
   return [VwA, VwB, VwC];
 }
 
+*/
 //------------------------------------------------------
 // little helper functions
 //------------------------------------------------------
@@ -388,11 +355,9 @@ var map = function (x, in_min, in_max, out_min, out_max) {
    * @param {*} wheel_diameter  in millimeters
    * @param {*} base_width      in milimeters
  */
+
+ /*
 class WheelKinematics {
-  /**
-   * 
-   * @param {*} pwm_bits 
-   */
   constructor(max_rpm, wheel_diameter, base_width, pwm_bits) {
     this.max_rpm = max_rpm;
     // calculated in meters
@@ -480,3 +445,6 @@ class WheelKinematics {
   }
 
 };
+
+*/
+

@@ -8,10 +8,11 @@
  * 
  * 
  */
-class DiffSteering {
+'use strict'
+
+module.exports = class DiffSteering {
 
     /**
-     * 
      * 
      */
 
@@ -23,7 +24,7 @@ class DiffSteering {
             pwmLimits       : [-127, 128],
             inputLimits     : [-127,128],
             speedOffsets    : [0,0],
-            pivotLimit      : 32.0          // 0..127
+            pivotLimit      : 50.0          // percentage of max pwmLimit
         }
         return dg;
     } 
@@ -65,14 +66,20 @@ class DiffSteering {
         this.R = (this.geometry.inputLimits[1] * Math.log10(2) / Math.log2(this.geometry.pwmLimits[1]));
     }
 
+    setPivotLimit(limit) {
+        if (limit > 0) {
+            this.geometry.pivotLimit = limit;
+        }
+        else {
+            this.geometry.pivotLimit = 0;           
+        }
+    }
+
     getPWM(inputX, inputY) {
         var pwmLeft, pwmRight;
 
         //
         // map input value to speedLimits
-        //
-        /*
-       */
         //
         // calculate a turn due to inputX value
         if (inputY >= 0) {
@@ -103,9 +110,10 @@ class DiffSteering {
         // - strength of pivot (pivotSpeed) based inputX
         // - blending of pivot vs drive (pivotScale) based on inputY
         var pivotSpeed = inputX;
-        var pivotScale = (Math.abs(inputY) > this.geometry.pivotLimit)
+        var pivL = this.geometry.pwmLimits[1] * (this.geometry.pivotLimit / 100);
+        var pivotScale = (Math.abs(inputY) > pivL)
                             ? 0.0 
-                            : (1.0 - (Math.abs(inputY) / this.geometry.pivotLimit));
+                            : (1.0 - (Math.abs(inputY) / pivL));
    
         //
         // mix pwmValues and pivot
@@ -135,9 +143,15 @@ class DiffSteering {
 
     getExpoPWM(inputx, inputy) {
         var pwmSpeed = this.getPWM(inputx, inputy);
-        console.log("R: %s" , R);
+        console.log("getExpoPWM() => speed [%s]", pwmSpeed);
+        console.log("getExpoPWM() => R: %s" , this.R);
         pwmSpeed[0] = Math.pow(2, (pwmSpeed[0] / this.R)) - 1; 
         pwmSpeed[1] = Math.pow(2, (pwmSpeed[1] / this.R)) - 1; 
+        console.log("getExpoPWM() => speed [%s]", pwmSpeed);
         return pwmSpeed;
     }
 }
+
+//module.exports.DiffSteering = DiffSteering;
+
+
