@@ -1,0 +1,108 @@
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+
+  <style>
+    body {
+      overflow : hidden;
+      padding : 0;
+      margin : 0;
+      background-color : #BBB;
+    }
+    #container {
+      width : 100%;
+      height : 100%;
+      overflow : hidden;
+      padding : 0;
+      margin : 0;
+      -webkit-user-select : none;
+      -moz-user-select : none;
+    }
+  </style>
+
+  <title>Omniwheel - NodeBot - </title>
+</head>
+<body>
+<a> Omniwheel - NodeBot </a>
+<div id="container"></div>
+
+
+<script src="/www/bower_components/virtualjoystick.js/virtualjoystick.js"></script>
+<script>
+  var RADIUS = 150;
+  var ws = new WebSocket('ws://<%= localip %>:8080');
+ 
+  var raw_cmd = {
+    cfg : {radius:RADIUS},    
+    joystick1 : {up:false, down:false, left:false, right:false, dX:0, dY:0},
+    joystick2 : {up:false, down:false, left:false, right:false, dX:0, dY:0},
+    btn1 : {set:false},
+    btn2 : {set:false},
+    btn3 : {set:false},
+    btn4 : {set:false},
+    btn5 : {set:false}
+} ;
+
+  var joystick1  = new VirtualJoystick({
+    container         : document.getElementById('container'),
+    //stationaryBase    : true,
+    //baseX             : 30,
+    //baseY             : 250,
+    mouseSupport      : true,
+    limitStickTravel  : true,
+    stickRadius       : RADIUS,
+    strokeStyle       : 'orange'
+  });
+
+  /*
+  var joystick2  = new VirtualJoystick({
+    container         : document.body,
+    mouseSupport      : true,
+    stationaryBase    : true,
+    baseX             : 200,
+    baseY             : 250,
+    limitStickTravel  : true,
+    stickRadius       : RADIUS,
+    strokeStyle       : 'cyan'
+  });
+  */
+  /*
+  var joystick2  = new VirtualJoystick({
+    container : document.getElementById('container2'),
+    mouseSupport : true
+  });
+*/
+
+  function step(timestamp) {
+
+    raw_cmd.joystick1.dX=Math.ceil(joystick1.deltaX());
+    raw_cmd.joystick1.dY=Math.ceil(joystick1.deltaY()); 
+    raw_cmd.joystick1.up = joystick1.up();
+    raw_cmd.joystick1.down = joystick1.down();
+    raw_cmd.joystick1.left = joystick1.left();
+    raw_cmd.joystick1.right = joystick1.right();
+     
+  /*
+    raw_cmd.joystick2.x=joystick2.deltaX();
+    raw_cmd.joystick2.y=joystick2.deltaY(); 
+    raw_cmd.joystick2.up = joystick2.up();
+    raw_cmd.joystick2.down = joystick2.down();
+    raw_cmd.joystick2.left = joystick2.left();
+    raw_cmd.joystick2.right = joystick2.right();
+  */
+
+    var serialized = JSON.stringify(raw_cmd);  
+
+    if (joystick1.deltaX() != 0 || joystick1.deltaY() != 0 && ws.readyState === 1) {
+      ws.send(serialized);
+    }
+    if( joystick1.deltaX() === 0 && joystick1.deltaY() === 0 && ws.readyState === 1) {
+      //ws.send ('STOP')
+    } 
+    requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+</script>
+</body>
+</html>

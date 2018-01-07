@@ -1,0 +1,27 @@
+{
+  "name": "OmniNodeBot_Webapp",
+  "version": "0.0.1",
+  "homepage": "",
+  "authors": [
+    "LunaX"
+  ],
+  "description": "Frontend for OmniNodeBot",
+  "main": "index.html",
+  "keywords": [
+    "raspberrypi",
+    "rpi",
+    "arduno",
+    "johnny-five"
+  ],
+  "license": "Apache-2.0",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "virtualjoystick.js": "*"
+  }
+}

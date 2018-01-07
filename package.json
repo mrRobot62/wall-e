@@ -1,0 +1,35 @@
+{
+  "name": "omninodebot",
+  "version": "0.0.1",
+  "description": "Omniwheel based robot. Controlled via Node.JS and Javascript via Johnny-Five on several Arduino-Boards",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mrRobot62/OmniNodeBot.git"
+  },
+  "keywords": [
+    "nodejs",
+    "omnibot",
+    "johnny-five",
+    "javascript",
+    "arduino"
+  ],
+  "author": "Lunax",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/mrRobot62/OmniNodeBot/issues"
+  },
+  "homepage": "https://github.com/mrRobot62/OmniNodeBot#readme",
+  "dependencies": {
+    "ejs": "^2.5.7",
+    "express": "^4.16.2",
+    "johnny-five": "^0.12.0",
+    "keypress": "^0.2.1",
+    "websocket": "^1.0.25",
+    "ws": "^3.3.3"
+  }
+}
