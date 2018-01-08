@@ -17,6 +17,9 @@ app.engine('.html', require('ejs').__express);
 app.set('views', joinPath(__dirname, 'view'));
 app.set('view engine', 'html');
 
+console.log("__dirname : %s", __dirname);
+console.log("JoinPath (%s)", joinPath(__dirname, 'view'));
+
 var server = app.listen(PORT, function() {
     console.log('Listening on port %d', server.address().port);
 });

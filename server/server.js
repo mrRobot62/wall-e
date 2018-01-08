@@ -8,6 +8,7 @@
  * 
  */
 var VERSION = "0.1",
+    fs = require("fs"),
     log4js = require("log4js"),
     five = require("johnny-five"),
     board = new five.Board(),
@@ -16,49 +17,66 @@ var VERSION = "0.1",
     networkInterfaces = require('os').networkInterfaces(),
     logger = log4js.getLogger(),
     WebSocketServer = require('ws').Server,
-    webappURL = 'http://192.168.0.115:3000',
-    PORT = 8080,
+    webappURL = 'http://192.168.0.152:3000',
+    PORT = '8080',
     led = null,
     localIP,
-    PWM = {
-      m1:{
+    PWM = [
+      {
+        invert : true,
         min : 0,        // minimum value for used motor
         max : 255,      // maximum value for PWM
         offset : 0      // used for speed offset
       },
-      m2:{
+      {
+        invert : true,
         min : 0,      
         max : 255,
         offset : 0
       }
-    },
-    MAX_RPM       = 100;
-    WHEEL_DIA_MM  = 50;
-    WHEEL_DIST_MM = 100;
-    PWM_BITS      = 8;
-    kinematic     = null;
+    ],
+    MAX_RPM       = 100,
+    WHEEL_DIA_MM  = 50,
+    WHEEL_DIST_MM = 100,
+    PWM_BITS      = 8,
+    kinematic     = null,
+    CONFIG        = "./server/server_config.json"
     ;
 
 
-logger.level = 'debug';
-var wss = new WebSocketServer({port: PORT});
+
+    logger.info("------------------------------------------");
+    logger.info(" Wall-E NodeBot " + VERSION);
+    logger.info(" (c) by LunaX");
+    logger.info("------------------------------------------");
+    
+
+    //----------------------------------------------------------
+    // read application configuration file
+    //----------------------------------------------------------
+    var content_config = fs.readFileSync(CONFIG);
+    var json_config = JSON.parse(content_config);
+    //logger.debug (json_config);
+
+    logger.level = json_config.loglevel;
+
+    var wss = new WebSocketServer({port: PORT});
 
 board.on("ready", function() {
+    led = new five.Led(13);
+    //--------------------------------------------------------
+    // Configure motors
+    //--------------------------------------------------------
+    logger.debug("configure motors");
+    motors = new five.Motors ([
+      {pins: {pwm: 5, dir: 4}, invertPWM: false},    // Motor A
+      {pins: {pwm: 6, dir: 7}, invertPWM: false},    // Motor B
+    ]);
 
-  led = new five.Led(13);
-  //--------------------------------------------------------
-  // Configure motors
-  //--------------------------------------------------------
-  logger.debug("configure motors");
-  motors = new five.Motors ([
-    {pins: {pwm: 5, dir: 4}, invertPWM: false},    // Motor A
-    {pins: {pwm: 6, dir: 7}, invertPWM: false},    // Motor B
-   ]);
 
-
-  motors[0].stop();
-  motors[1].stop();
-  logger.info("all motors off");
+    motors[0].stop();
+    motors[1].stop();
+    logger.info("all motors off");
 
   //kinematic = new WheelKinematics(MAX_RPM, WHEEL_DIA_MM, WHEEL_DIST_MM, PWM_BITS);
 
@@ -111,7 +129,6 @@ board.on("ready", function() {
     },
     
     help: function() {
-
       logger.info("----------------------------");
       logger.info("on     : LED on");
       logger.info("off    : LED off");
@@ -136,12 +153,12 @@ wss.on('connection', function(ws) {
       led_handling(data);
      } else {
       // parse_ws_data(data);
-      logger.debug('Message (' + data + ')');
+      //logger.debug('Message (' + data + ')');
       var raw_cmd = JSON.parse(data);
-      logger.debug ("Radius: %s, X:%s, Y:%s", raw_cmd.cfg.radius, raw_cmd.joystick1.dX , raw_cmd.joystick1.dY);
+      //logger.debug ("Radius: %s, X:%s, Y:%s", raw_cmd.cfg.radius, raw_cmd.joystick1.dX , raw_cmd.joystick1.dY);
 
       if (raw_cmd.joystick1.dX != 0 || raw_cmd.joystick1.dX != 0) {
-        drive (raw_cmd.joystick1.dX, raw_cmd.joystick1.dY);
+        drive (raw_cmd.cfg.radius, raw_cmd.joystick1.dX, raw_cmd.joystick1.dY);
       }
     }
 });
@@ -156,11 +173,6 @@ wss.on('connection', function(ws) {
   });  
 });
 
-logger.info("------------------------------------------");
-logger.info(" Wall-E NodeBot " + VERSION);
-logger.info(" (c) by LunaX");
-logger.info("------------------------------------------");
-
 
 // send robot ip to webapplication
 if (networkInterfaces.wlan0) {
@@ -168,7 +180,8 @@ if (networkInterfaces.wlan0) {
   logger.debug("read wlan0 IP-address => " + localIP);
 } else {
   // use en0 (eth0) during cable connection
-  localIP = networkInterfaces.en0[1].address;
+  logger.info("Connect via LAN (%s",networkInterfaces.eth0.address);
+  localIP = networkInterfaces.eth0[0].address;
 }
 
 logger.info('Local server address ws://%s:%s', localIP, PORT);
@@ -207,15 +220,32 @@ var led_handling = function ( mode) {
 // Differential Steering kinematic
 //----------------------------------------------------
 /**
+ * drive function - calles via websocket
+ * calculate due to vector (x,y) speed values for left/right motor
  * 
+ * @param {*} r max radius from joystick
  * @param {*} x x position of joystick
  * @param {*} y y position of joystick
  */
-var drive = function(x,y) {
+var drive = function(r, x,y) {
   const kinematic = require("./Kinematics.js");
   var g = kinematic.getDefaultGeometry();
+
+  // set limits to joystick radius
+  g.inputLimits[0] = -r;
+  g.inputLimits[1] = r;
+
+  g.pwmLimits[0] = -r;
+  g.pwmLimits[1] = r;
+  
+  g.pivotLimit = 35.0;
+
   var ds = new kinematic(g);
-  console.log("FWD speed %s", ds.getPWM(x,y));
+  var speeds = ds.getPWM(x,y);
+  console.log("Kinematic => %s", speeds);
+
+  driveMotors(r,motors, speeds);
+
 };
 
 /**
@@ -225,7 +255,7 @@ var drive = function(x,y) {
  * @param {*} speeds array for all three motors based for an omniwheel movement
  */
 
- /*
+ 
 var driveMotors = function (jR, motors, speeds) {
   var msg = "";
   for(var i=0; i < motors.length; i++) {
@@ -235,13 +265,14 @@ var driveMotors = function (jR, motors, speeds) {
 
     // set speed into PWM range    
     speed = Math.ceil(speed);
-    speed = map(speed, 0, jR , MIN_PWM[i], MAX_PWM[i]);
+    speed = map(speed, 0, jR , PWM[i].min, PWM[i].max);
     //
     // set an offset value to current motor to adapt technical motor variations 
-    speed = clamp (speed + M_OFFSET[i],MIN_PWM[i], MAX_PWM[i]);
+    speed = clamp (speed + PWM[i].offset,PWM[i].min, PWM[i].max);
 
     //
     // forward/reverse/stop motion
+    if (PWM[i].invert) sign *= -1;
     switch (sign) {
       case 0: motors[i].stop(); msg += 'STOP];'; break;
       case 1: motors[i].forward(speed); msg += 'FWD:' + speed + ']; '; break;
@@ -250,7 +281,7 @@ var driveMotors = function (jR, motors, speeds) {
   }
   logger.debug(msg);
 };
-*/
+
 
 /** 
  * change cartesian (x/y) position into a polar system (radius/degree)

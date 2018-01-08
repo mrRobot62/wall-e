@@ -86,18 +86,18 @@ module.exports = class DiffSteering {
             // Forward
             pwmLeft = (inputX >= 0) 
                         ? this.geometry.inputLimits[1] 
-                        : (this.geometry.inputLimits[1] + inputX);
+                        : (this.geometry.inputLimits[1] - inputX);
             pwmRight = (inputX >= 0) 
-                        ? (this.geometry.inputLimits[1] - inputX) 
+                        ? (this.geometry.inputLimits[1] + inputX) 
                         : this.geometry.inputLimits[1];
         } else {
             // Backward
             pwmLeft = (inputX >= 0) 
-                        ? (this.geometry.inputLimits[1] - inputX)
+                        ? (this.geometry.inputLimits[1] + inputX)
                         : this.geometry.inputLimits[1];
             pwmRight = (inputX >= 0) 
                         ? this.geometry.inputLimits[1]
-                        : (this.geometry.inputLimits[1] + inputX);      
+                        : (this.geometry.inputLimits[1] - inputX);      
         }
 
         // scale drive output due to inputY input
@@ -118,8 +118,8 @@ module.exports = class DiffSteering {
         //
         // mix pwmValues and pivot
 
-        var left = (1.0 - pivotScale) * pwmLeft + pivotScale * (pivotSpeed);
-        var right = (1.0 - pivotScale) * pwmRight + pivotScale * (-pivotSpeed);
+        var left = (1.0 - pivotScale) * pwmLeft + pivotScale * (-pivotSpeed);
+        var right = (1.0 - pivotScale) * pwmRight + pivotScale * (pivotSpeed);
         
         //
         // convert steering values into
@@ -141,6 +141,8 @@ module.exports = class DiffSteering {
         return [left, right];
     }
 
+
+    
     getExpoPWM(inputx, inputy) {
         var pwmSpeed = this.getPWM(inputx, inputy);
         console.log("getExpoPWM() => speed [%s]", pwmSpeed);

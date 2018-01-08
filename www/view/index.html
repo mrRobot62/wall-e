@@ -28,9 +28,9 @@
 <div id="container"></div>
 
 
-<script src="/www/bower_components/virtualjoystick.js/virtualjoystick.js"></script>
+<script src="/view/bower_components/virtualjoystick.js/virtualjoystick.js"></script>
 <script>
-  var RADIUS = 150;
+  var RADIUS = 200;
   var ws = new WebSocket('ws://<%= localip %>:8080');
  
   var raw_cmd = {
@@ -92,6 +92,7 @@
     raw_cmd.joystick2.right = joystick2.right();
   */
 
+    // do a serialization via JSON
     var serialized = JSON.stringify(raw_cmd);  
 
     if (joystick1.deltaX() != 0 || joystick1.deltaY() != 0 && ws.readyState === 1) {
